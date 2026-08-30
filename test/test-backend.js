@@ -323,6 +323,20 @@ async function runTests() {
       'POST /api/complaints rejected 6th complaint in 24h with 429 Daily Limit'
     );
 
+    // 14. Daily Quota API endpoint
+    console.log('\n--- Test 14: GET /api/complaints/daily-quota ---');
+    const quotaRes = await fetch(`${BASE_URL}/api/complaints/daily-quota`, {
+      headers: { Authorization: `Bearer ${citizenToken}` },
+    });
+    const quotaData = await quotaRes.json();
+    assert(
+      quotaRes.status === 200 &&
+      quotaData.limit === 5 &&
+      quotaData.usedToday === 5 &&
+      quotaData.remaining === 0,
+      'GET /api/complaints/daily-quota returned accurate quota usage & remaining balance'
+    );
+
     console.log('=============================================');
     console.log(`Test Results: ${passedCount} PASSED, ${failedCount} FAILED`);
     console.log('=============================================\n');

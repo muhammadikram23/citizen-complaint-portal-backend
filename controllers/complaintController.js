@@ -211,6 +211,35 @@ const getComplaints = async (req, res) => {
   }
 };
 
+// @desc    Get current user's daily complaint quota (limit: 5 per 24h)
+// @route   GET /api/complaints/daily-quota
+// @access  Private (Citizen / Authenticated)
+const getDailyQuota = async (req, res) => {
+  try {
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const count = await Complaint.countDocuments({
+      createdBy: req.user._id,
+      createdAt: { $gte: twentyFourHoursAgo },
+    });
+
+    const limit = DAILY_COMPLAINT_LIMIT;
+    const remaining = Math.max(0, limit - count);
+
+    res.status(200).json({
+      success: true,
+      limit,
+      usedToday: count,
+      remaining,
+    });
+  } catch (error) {
+    console.error('getDailyQuota error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Server error fetching daily quota.',
+    });
+  }
+};
+
 // @desc    Get complaints filed by current user
 // @route   GET /api/complaints/mine
 // @access  Private (Citizen)
@@ -635,6 +664,7 @@ module.exports = {
   createComplaint,
   getComplaints,
   getMyComplaints,
+  getDailyQuota,
   getComplaintById,
   upvoteComplaint,
   updateStatus,

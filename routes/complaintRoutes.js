@@ -4,6 +4,7 @@ const {
   createComplaint,
   getComplaints,
   getMyComplaints,
+  getDailyQuota,
   getComplaintById,
   upvoteComplaint,
   updateStatus,
@@ -21,6 +22,7 @@ router.route('/')
   .post(protect, upload.single('photo'), createComplaint);
 
 router.post('/check-duplicate', protect, checkDuplicate);
+router.get('/daily-quota', protect, getDailyQuota);
 router.get('/mine', protect, getMyComplaints);
 router.get('/export', protect, officerOnly, exportComplaints);
 
