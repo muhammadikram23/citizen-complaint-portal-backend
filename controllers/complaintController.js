@@ -54,12 +54,17 @@ const createComplaint = async (req, res) => {
       });
     }
 
+    let finalImageUrl = req.body.imageUrl || '';
+    if (req.file) {
+      finalImageUrl = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
+    }
+
     const complaint = await Complaint.create({
       title,
       description,
       category,
       area,
-      imageUrl: imageUrl || '',
+      imageUrl: finalImageUrl,
       createdBy: req.user._id,
       status: 'Pending',
     });

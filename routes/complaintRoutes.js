@@ -12,10 +12,12 @@ const {
 } = require('../controllers/complaintController');
 const { protect, officerOnly } = require('../middleware/auth');
 
+const upload = require('../middleware/upload');
+
 // Public & Citizen routes
 router.route('/')
   .get(getComplaints)
-  .post(protect, createComplaint);
+  .post(protect, upload.single('photo'), createComplaint);
 
 router.get('/mine', protect, getMyComplaints);
 router.get('/export', protect, officerOnly, exportComplaints);
