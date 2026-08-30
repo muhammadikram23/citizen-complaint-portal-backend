@@ -114,7 +114,7 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"officer@citygov.org\",\n  \"password\": \"Officer@123\"\n}"
+              "raw": "{\n  \"email\": \"officer@example.com\",\n  \"password\": \"officier@123\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/auth/login",

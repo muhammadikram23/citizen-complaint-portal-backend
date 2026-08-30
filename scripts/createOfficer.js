@@ -10,9 +10,9 @@ const seedOfficer = async () => {
     console.log(`Connecting to database at ${mongoUri}...`);
     await mongoose.connect(mongoUri);
 
-    const email = (process.env.OFFICER_EMAIL || 'officer@citygov.org').toLowerCase().trim();
+    const email = (process.env.OFFICER_EMAIL || 'officer@example.com').toLowerCase().trim();
     const name = process.env.OFFICER_NAME || 'City Officer';
-    const password = process.env.OFFICER_PASSWORD || 'Officer@123';
+    const password = process.env.OFFICER_PASSWORD || 'officier@123';
 
     const existingOfficer = await User.findOne({ email });
     if (existingOfficer) {

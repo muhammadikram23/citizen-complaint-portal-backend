@@ -13,18 +13,18 @@ const seedData = async () => {
 
     console.log('Cleaning old test data...');
     await Complaint.deleteMany({});
-    await User.deleteMany({ email: { $ne: 'officer@citygov.org' } });
+    await User.deleteMany({ email: { $ne: 'officer@example.com' } });
 
     // Ensure Officer exists
-    let officer = await User.findOne({ email: 'officer@citygov.org' });
+    let officer = await User.findOne({ email: 'officer@example.com' });
     if (!officer) {
       officer = await User.create({
         name: 'Chief Municipal Officer',
-        email: 'officer@citygov.org',
-        password: 'Officer@123',
+        email: 'officer@example.com',
+        password: 'officier@123',
         role: 'officer',
       });
-      console.log('Created officer account: officer@citygov.org');
+      console.log('Created officer account: officer@example.com');
     }
 
     // Create sample citizens
@@ -153,7 +153,7 @@ const seedData = async () => {
 
     console.log(`[SUCCESS] Seeded ${sampleComplaints.length} realistic complaints across various categories and priorities.`);
     console.log(`Demo Citizen:  ahmed@citizen.org / Citizen@123`);
-    console.log(`Demo Officer:  officer@citygov.org / Officer@123`);
+    console.log(`Demo Officer:  officer@example.com / officier@123`);
     process.exit(0);
   } catch (error) {
     console.error(`[ERROR] Seeding failed:`, error);
