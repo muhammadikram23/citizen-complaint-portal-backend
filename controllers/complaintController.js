@@ -1,5 +1,6 @@
 const Complaint = require('../models/Complaint');
 const { attachPriority, attachPriorityToArray } = require('../utils/priority');
+const { normalizeArea, tokenize, jaccardSimilarity } = require('../utils/similarity');
 
 let json2csvParser = null;
 try {
@@ -532,6 +533,71 @@ const exportComplaints = async (req, res) => {
   }
 };
 
+// @desc    Check for duplicate complaints using area normalization and token similarity
+// @route   POST /api/complaints/check-duplicate
+// @access  Private (Citizen / Authenticated)
+const checkDuplicate = async (req, res) => {
+  try {
+    const { title, description, category, area } = req.body;
+    if (!category || !area || !title) {
+      return res.status(400).json({
+        success: false,
+        message: 'title, category, and area are required.',
+      });
+    }
+
+    const areaNormalized = normalizeArea(area);
+
+    const candidates = await Complaint.find({
+      category: new RegExp(`^${category}$`, 'i'),
+      areaNormalized,
+      status: { $in: ['Pending', 'In Progress'] },
+    }).populate('createdBy', 'name');
+
+    const inputTokens = tokenize(`${title} ${description || ''}`);
+
+    const scored = candidates
+      .map((c) => {
+        const candidateTokens = tokenize(`${c.title} ${c.description}`);
+        const similarity = jaccardSimilarity(inputTokens, candidateTokens);
+        return { c, similarity };
+      })
+      .filter(({ similarity }) => similarity >= 0.25)
+      .sort((a, b) => b.similarity - a.similarity)
+      .slice(0, 5);
+
+    const matches = scored.map(({ c, similarity }) => {
+      const withPriority = attachPriority(c);
+      return {
+        id: c._id,
+        _id: c._id,
+        title: c.title,
+        description: c.description,
+        area: c.area,
+        category: c.category,
+        status: c.status,
+        upvotes: c.upvotes,
+        priority: withPriority.priority,
+        priorityScore: withPriority.priorityScore,
+        similarity: Number(similarity.toFixed(2)),
+        createdAt: c.createdAt,
+      };
+    });
+
+    res.status(200).json({
+      success: true,
+      hasDuplicates: matches.length > 0,
+      matches,
+    });
+  } catch (error) {
+    console.error('checkDuplicate error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Server error checking duplicates.',
+    });
+  }
+};
+
 module.exports = {
   createComplaint,
   getComplaints,
@@ -541,4 +607,5 @@ module.exports = {
   updateStatus,
   submitFeedback,
   exportComplaints,
+  checkDuplicate,
 };

@@ -78,14 +78,26 @@ const complaintSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    areaNormalized: {
+      type: String,
+      index: true,
+    },
   },
   {
     timestamps: true,
   }
 );
 
+// Pre-save hook to auto-compute normalized area
+complaintSchema.pre('save', function (next) {
+  if (this.isModified('area') || !this.areaNormalized) {
+    this.areaNormalized = (this.area || '').toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+  }
+  next();
+});
+
 // Index for common filter queries and search
-complaintSchema.index({ category: 1, area: 1, status: 1 });
+complaintSchema.index({ category: 1, areaNormalized: 1, status: 1 });
 complaintSchema.index({ createdBy: 1 });
 complaintSchema.index({ createdAt: -1 });
 

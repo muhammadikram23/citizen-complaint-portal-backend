@@ -9,6 +9,7 @@ const {
   updateStatus,
   submitFeedback,
   exportComplaints,
+  checkDuplicate,
 } = require('../controllers/complaintController');
 const { protect, officerOnly } = require('../middleware/auth');
 
@@ -19,6 +20,7 @@ router.route('/')
   .get(getComplaints)
   .post(protect, upload.single('photo'), createComplaint);
 
+router.post('/check-duplicate', protect, checkDuplicate);
 router.get('/mine', protect, getMyComplaints);
 router.get('/export', protect, officerOnly, exportComplaints);
 

@@ -134,13 +134,49 @@ async function runTests() {
     );
     complaintId = createData.complaint._id;
 
-    // 6. Public Feed & Duplicate Detection Query
-    console.log('\n--- Test 6: Duplicate Detection Query & Dynamic Priority ---');
-    const feedRes = await fetch(`${BASE_URL}/api/complaints?category=Water&area=Sector G-9&status=pending,in-progress`);
-    const feedData = await feedRes.json();
+    // 6. Dedicated Duplicate Detection Endpoint Test
+    console.log('\n--- Test 6: POST /api/complaints/check-duplicate ---');
+    // 6a. Similar description in normalized area (e.g. "sector g-9")
+    const dupRes = await fetch(`${BASE_URL}/api/complaints/check-duplicate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${citizenToken}`,
+      },
+      body: JSON.stringify({
+        title: 'Broken water pipe leak',
+        description: 'Drinking water is gushing out on the street near Sector G9 roundabout.',
+        category: 'Water',
+        area: 'sector g-9',
+      }),
+    });
+    const dupData = await dupRes.json();
     assert(
-      feedRes.status === 200 && feedData.complaints.some(c => c._id === complaintId),
-      'GET /api/complaints returned matching category/area for duplicate detection'
+      dupRes.status === 200 &&
+      dupData.hasDuplicates === true &&
+      dupData.matches.length > 0 &&
+      dupData.matches[0].similarity >= 0.25,
+      'POST /api/complaints/check-duplicate successfully identified duplicate report via Jaccard similarity & normalized area'
+    );
+
+    // 6b. Unrelated description in same area should NOT match
+    const noDupRes = await fetch(`${BASE_URL}/api/complaints/check-duplicate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${citizenToken}`,
+      },
+      body: JSON.stringify({
+        title: 'Completely different issue',
+        description: 'Tree branches touching high voltage power lines.',
+        category: 'Water',
+        area: 'Sector G-9',
+      }),
+    });
+    const noDupData = await noDupRes.json();
+    assert(
+      noDupRes.status === 200 && noDupData.hasDuplicates === false,
+      'POST /api/complaints/check-duplicate correctly rejected non-duplicate complaint'
     );
 
     // 7. Upvote Complaint
