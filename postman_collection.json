@@ -1,0 +1,353 @@
+{
+  "info": {
+    "name": "Citizen Complaint Portal API",
+    "description": "Complete Postman collection for testing all endpoints of the Citizen Complaint Portal backend.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "citizenToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "officerToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "complaintId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Health & Status",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "health"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Authentication",
+      "item": [
+        {
+          "name": "Citizen Signup",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Ali Citizen\",\n  \"email\": \"ali@example.com\",\n  \"password\": \"Citizen@123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/signup",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "signup"]
+            }
+          }
+        },
+        {
+          "name": "Citizen Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.token) {",
+                  "    pm.collectionVariables.set('citizenToken', jsonData.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"ali@example.com\",\n  \"password\": \"Citizen@123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Officer Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.token) {",
+                  "    pm.collectionVariables.set('officerToken', jsonData.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"officer@citygov.org\",\n  \"password\": \"Officer@123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Get Current User (Me)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{citizenToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "me"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Complaints (Citizen & Public)",
+      "item": [
+        {
+          "name": "Create Complaint (Citizen)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.complaint && jsonData.complaint._id) {",
+                  "    pm.collectionVariables.set('complaintId', jsonData.complaint._id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{citizenToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Main Road Broken Pothole\",\n  \"category\": \"Road\",\n  \"area\": \"Sector G-9\",\n  \"description\": \"Large pothole near the traffic signal damaging vehicles.\",\n  \"imageUrl\": \"https://images.unsplash.com/photo-1515162816999-a0c47dc192f7\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/complaints",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "complaints"]
+            }
+          }
+        },
+        {
+          "name": "Browse Public Complaints (With Filters)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/complaints?category=Road&area=Sector G-9&status=pending,in-progress&sortBy=priority",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "complaints"],
+              "query": [
+                { "key": "category", "value": "Road" },
+                { "key": "area", "value": "Sector G-9" },
+                { "key": "status", "value": "pending,in-progress" },
+                { "key": "sortBy", "value": "priority" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Duplicate Check Query",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/complaints?category=Road&area=Sector G-9&status=Pending,In Progress",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "complaints"],
+              "query": [
+                { "key": "category", "value": "Road" },
+                { "key": "area", "value": "Sector G-9" },
+                { "key": "status", "value": "Pending,In Progress" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get My Complaints (Citizen)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{citizenToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/complaints/mine",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "complaints", "mine"]
+            }
+          }
+        },
+        {
+          "name": "Get Single Complaint Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/complaints/{{complaintId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "complaints", "{{complaintId}}"]
+            }
+          }
+        },
+        {
+          "name": "Upvote Complaint (Citizen)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{citizenToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/complaints/{{complaintId}}/upvote",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "complaints", "{{complaintId}}", "upvote"]
+            }
+          }
+        },
+        {
+          "name": "Submit Citizen Feedback (After Resolution)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{citizenToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"feedbackRating\": 5,\n  \"feedbackComment\": \"Fixed very quickly and cleanly. Thank you!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/complaints/{{complaintId}}/feedback",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "complaints", "{{complaintId}}", "feedback"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Officer Operations",
+      "item": [
+        {
+          "name": "Update Status to In Progress (Officer)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{officerToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"In Progress\",\n  \"officerRemark\": \"Road maintenance team dispatched for inspection.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/complaints/{{complaintId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "complaints", "{{complaintId}}", "status"]
+            }
+          }
+        },
+        {
+          "name": "Update Status to Resolved (Officer - Triggers Feedback)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{officerToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"Resolved\",\n  \"officerRemark\": \"Pothole has been filled with asphalt and steamrolled.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/complaints/{{complaintId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "complaints", "{{complaintId}}", "status"]
+            }
+          }
+        },
+        {
+          "name": "Export Complaints CSV (Officer)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{officerToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/complaints/export?category=Road&status=Resolved",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "complaints", "export"],
+              "query": [
+                { "key": "category", "value": "Road" },
+                { "key": "status", "value": "Resolved" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "AI Daily Briefing (Officer)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{officerToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/ai/officer-summary",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "ai", "officer-summary"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
