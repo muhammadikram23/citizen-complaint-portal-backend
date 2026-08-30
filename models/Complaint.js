@@ -82,6 +82,27 @@ const complaintSchema = new mongoose.Schema(
       type: String,
       index: true,
     },
+    statusHistory: [
+      {
+        status: {
+          type: String,
+          enum: {
+            values: ['Pending', 'In Progress', 'Resolved'],
+            message: '{VALUE} is not a valid status',
+          },
+          default: 'Pending',
+        },
+        remark: {
+          type: String,
+          default: '',
+          trim: true,
+        },
+        changedAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
   },
   {
     timestamps: true,

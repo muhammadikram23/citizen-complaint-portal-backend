@@ -33,6 +33,8 @@ const formatToCSV = (fields, data) => {
   return [headerRow, ...rows].join('\n');
 };
 
+const DAILY_COMPLAINT_LIMIT = 5;
+
 // @desc    Create a new complaint
 // @route   POST /api/complaints
 // @access  Private (Citizen / Authenticated)
@@ -55,6 +57,20 @@ const createComplaint = async (req, res) => {
       });
     }
 
+    // Daily complaint limit check (Feature 3 spam guard)
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const complaintsInLast24Hours = await Complaint.countDocuments({
+      createdBy: req.user._id,
+      createdAt: { $gte: twentyFourHoursAgo },
+    });
+
+    if (complaintsInLast24Hours >= DAILY_COMPLAINT_LIMIT) {
+      return res.status(429).json({
+        success: false,
+        message: "You've reached the limit of 5 complaints per day. Please try again tomorrow.",
+      });
+    }
+
     let finalImageUrl = req.body.imageUrl || '';
     if (req.file) {
       finalImageUrl = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
@@ -68,6 +84,13 @@ const createComplaint = async (req, res) => {
       imageUrl: finalImageUrl,
       createdBy: req.user._id,
       status: 'Pending',
+      statusHistory: [
+        {
+          status: 'Pending',
+          remark: 'Complaint filed',
+          changedAt: new Date(),
+        },
+      ],
     });
 
     const populated = await Complaint.findById(complaint._id).populate('createdBy', 'name email');
@@ -313,6 +336,9 @@ const updateStatus = async (req, res) => {
       });
     }
 
+    const newStatus = status || complaint.status;
+    const newRemark = officerRemark !== undefined ? officerRemark : (complaint.officerRemark || '');
+
     if (status) {
       complaint.status = status;
       // Section 5.12: When marked Resolved, trigger feedbackPending: true if feedback not given yet
@@ -324,6 +350,13 @@ const updateStatus = async (req, res) => {
     if (officerRemark !== undefined) {
       complaint.officerRemark = officerRemark;
     }
+
+    // Append to statusHistory audit trail
+    complaint.statusHistory.push({
+      status: newStatus,
+      remark: newRemark,
+      changedAt: new Date(),
+    });
 
     await complaint.save();
 

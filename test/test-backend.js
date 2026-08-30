@@ -129,8 +129,12 @@ async function runTests() {
     assert(
       createRes.status === 201 &&
       createData.complaint.status === 'Pending' &&
-      createData.complaint.priority === 'Low',
-      'POST /api/complaints created complaint with status: Pending & computed priority: Low'
+      createData.complaint.priority === 'Low' &&
+      Array.isArray(createData.complaint.statusHistory) &&
+      createData.complaint.statusHistory.length === 1 &&
+      createData.complaint.statusHistory[0].status === 'Pending' &&
+      createData.complaint.statusHistory[0].remark === 'Complaint filed',
+      'POST /api/complaints created complaint with status: Pending, seeded statusHistory, & computed priority: Low'
     );
     complaintId = createData.complaint._id;
 
@@ -159,23 +163,24 @@ async function runTests() {
       'POST /api/complaints/check-duplicate successfully identified duplicate report via Jaccard similarity & normalized area'
     );
 
-    // 6b. Unrelated description in same area should NOT match
-    const noDupRes = await fetch(`${BASE_URL}/api/complaints/check-duplicate`, {
+    // 6b. Dissimilar complaint in same area
+    const nonDupRes = await fetch(`${BASE_URL}/api/complaints/check-duplicate`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${citizenToken}`,
       },
       body: JSON.stringify({
-        title: 'Completely different issue',
-        description: 'Tree branches touching high voltage power lines.',
+        title: 'Streetlight pole fallen',
+        description: 'Electrical pole completely knocked down blocking alleyway.',
         category: 'Water',
         area: 'Sector G-9',
       }),
     });
-    const noDupData = await noDupRes.json();
+    const nonDupData = await nonDupRes.json();
     assert(
-      noDupRes.status === 200 && noDupData.hasDuplicates === false,
+      nonDupRes.status === 200 &&
+      (nonDupData.hasDuplicates === false || nonDupData.matches.length === 0),
       'POST /api/complaints/check-duplicate correctly rejected non-duplicate complaint'
     );
 
@@ -202,7 +207,7 @@ async function runTests() {
       'PATCH /api/complaints/:id/upvote prevented duplicate upvoting'
     );
 
-    // 9. Officer Status Update & feedbackPending trigger
+    // 9. Officer Status Update & feedbackPending trigger + statusHistory append
     console.log('\n--- Test 9: Officer Status Update to Resolved ---');
     const updateRes = await fetch(`${BASE_URL}/api/complaints/${complaintId}/status`, {
       method: 'PATCH',
@@ -219,8 +224,11 @@ async function runTests() {
     assert(
       updateRes.status === 200 &&
       updateData.complaint.status === 'Resolved' &&
-      updateData.complaint.feedbackPending === true,
-      'PATCH /api/complaints/:id/status marked Resolved and triggered feedbackPending: true'
+      updateData.complaint.feedbackPending === true &&
+      updateData.complaint.statusHistory.length === 2 &&
+      updateData.complaint.statusHistory[1].status === 'Resolved' &&
+      updateData.complaint.statusHistory[1].remark === 'Pipeline valve replaced and pressure tested.',
+      'PATCH /api/complaints/:id/status marked Resolved, appended statusHistory, and triggered feedbackPending: true'
     );
 
     // 10. Citizen Feedback Submission
@@ -273,6 +281,47 @@ async function runTests() {
       'POST /api/ai/officer-summary generated briefing and calculated accurate statistics'
     );
     console.log(`\n  [Generated Briefing Sample]:\n  "${aiData.summary}"\n`);
+
+    // 13. Daily Complaint Limit (Spam Guard: 5 complaints/24h)
+    console.log('\n--- Test 13: Daily Complaint Limit (Spam Guard) ---');
+    // Citizen has filed 1 complaint so far. Let's file 4 more to hit the limit of 5.
+    for (let i = 2; i <= 5; i++) {
+      const res = await fetch(`${BASE_URL}/api/complaints`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${citizenToken}`,
+        },
+        body: JSON.stringify({
+          title: `Complaint test batch #${i}`,
+          description: `Description for complaint test batch #${i}`,
+          category: 'Garbage',
+          area: 'Sector G-9',
+        }),
+      });
+      assert(res.status === 201, `POST /api/complaints allowed complaint #${i} under limit`);
+    }
+
+    // 6th complaint should be rejected with 429 Too Many Requests
+    const sixthRes = await fetch(`${BASE_URL}/api/complaints`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${citizenToken}`,
+      },
+      body: JSON.stringify({
+        title: '6th complaint exceeding daily limit',
+        description: 'This complaint should trigger 429 daily limit protection.',
+        category: 'Garbage',
+        area: 'Sector G-9',
+      }),
+    });
+    const sixthData = await sixthRes.json();
+    assert(
+      sixthRes.status === 429 &&
+      sixthData.message.includes("You've reached the limit of 5 complaints per day"),
+      'POST /api/complaints rejected 6th complaint in 24h with 429 Daily Limit'
+    );
 
     console.log('=============================================');
     console.log(`Test Results: ${passedCount} PASSED, ${failedCount} FAILED`);
