@@ -145,18 +145,26 @@ const getOfficerSummary = async (req, res) => {
 
     const stats = {
       totalComplaints,
+      total: totalComplaints,
+      totalActive: pendingCount + inProgressCount,
+      activeCount: pendingCount + inProgressCount,
       pendingCount,
+      pending: pendingCount,
       inProgressCount,
+      inProgress: inProgressCount,
       resolvedCount,
+      resolved: resolvedCount,
       newToday,
       overdueCount,
       resolvedThisWeek,
       criticalCount,
+      critical: criticalCount,
       highCount,
       topCategories,
       hotspotAreas,
       ratedComplaintsCount,
       avgCitizenRating,
+      averageCitizenRating: avgCitizenRating,
     };
 
     let aiSummaryText = null;
