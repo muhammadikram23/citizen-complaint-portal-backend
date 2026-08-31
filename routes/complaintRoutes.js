@@ -25,6 +25,7 @@ router.post('/check-duplicate', protect, checkDuplicate);
 router.get('/daily-quota', protect, getDailyQuota);
 router.get('/mine', protect, getMyComplaints);
 router.get('/export', protect, officerOnly, exportComplaints);
+router.get('/export/csv', protect, officerOnly, exportComplaints);
 
 router.get('/:id', getComplaintById);
 router.patch('/:id/upvote', protect, upvoteComplaint);
